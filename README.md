@@ -19,6 +19,6 @@ This .save file can be read into an ENVI format via crism2envi.pro (which requir
 
 
 Reference:
-Carter et al., 2012
+Carter et al., 2012;
 Pan et al., 2017
 
