@@ -6,10 +6,12 @@ main script*: readcrism.pro
 To run the main script, the path file named "mypaths.def" needs to be updated and saved. 
 
 >> @mypaths.def
+
 >> save,filename = 'mypaths.sav'
 
 The CRISM image IDs should be listed in a text file (See the sample file list). 
 Then the script would run automatically:
+
 >> readcrism,file.list
 
 readcrism.pro includes these main procedures:
