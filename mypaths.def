@@ -1,14 +1,8 @@
 ; Load these variables to your IDL session by running IDL> @mypaths.def
 ; Then save the session as : IDL> save,file='mypaths.sav'
 
-CRISM_RA_PATH       = '\\lewis\data1\lpan\crism_data\crism_proc\readcrismv3\RAfiles'
-CRISM_DATA_PATH     = '\\lewis\data4\crism\trdr\'
-CRISM_DDR_PATH      = '\\lewis\data4\crism\ddr\'
-CRISM_NAV_PATH      = '\\lewis\data4\crism\trdr\'
-CRISM_PATH          = '\\home\user\crism\'
-CRISM_REF_PATH      = '\\lewis\data1\CAT_ENVI\aux_files\CDRs
-CRISM_SAV_PATH      = '\\lewis\data3\lpan\crism\south_of_lyot\'
-LAB_REF_PATH        = '\\home\user\spectral_library\slib\'
-PRO_PATH            = '\\lewis\data1\lpan\crism_data\crism_proc\readcrismv3\'
-REF_PATH            = '\\lewis\data1\lpan\crism_data\crism_proc\readcrismv3\'
-SAV_PATH            = '\\lewis\data3\lpan\crism\south_of_lyots\'
+CRISM_DATA_PATH     = '\\loc\data\crism\trdr\' ; Location of TRDR files and labels / or CAT-corrected I/F file
+CRISM_DDR_PATH      = '\\loc\data\crism\\ddr\' ; Location of DDR files and labels
+CRISM_REF_PATH      = '\\loc\CAT_ENVI\aux_files\CDRs ; Location of CAT_ENVI auxillary files
+CRISM_SAV_PATH      = '\\loc\data\crism\output\' ; Location of the output files
+PRO_PATH            = '\\loc\data\readcrism\' ; Location of the file list
