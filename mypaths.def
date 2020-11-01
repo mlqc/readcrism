@@ -1,6 +1,7 @@
 ; Load these variables to your IDL session by running IDL> @mypaths.def
 ; Then save the session as : IDL> save,file='mypaths.sav'
 
+CRISM_RA_PATH       = '\\loc\data\crism\ra\' ; Location of the radiance file (ignore if starting from I/F)
 CRISM_DATA_PATH     = '\\loc\data\crism\trdr\' ; Location of TRDR files and labels / or CAT-corrected I/F file
 CRISM_DDR_PATH      = '\\loc\data\crism\\ddr\' ; Location of DDR files and labels
 CRISM_REF_PATH      = '\\loc\CAT_ENVI\aux_files\CDRs ; Location of CAT_ENVI auxillary files
