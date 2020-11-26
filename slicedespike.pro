@@ -119,22 +119,23 @@ min_x=0 & min_y=0 & max_x=0 & max_y=0
     threshold=threshold1
 
     slice_xl=input(min_x:max_x,0:size_l-1,i)
-    sice_xl=reform(slice_xl)
+    slice_xl=reform(temporary(slice_xl))
 ;    count_bad=0l
 ;    check_bad=where(finite(slice_xl) eq 0,count_bad)
 ;    if count_bad gt 0 then slice_xl(check_bad)=0.    
     medderivdat=fltarr(max_x-min_x+1,size_l)
     derivdat3=medderivdat
-    derivdat=medderivdat
-    
+    derivdat=medderivdat     
     for loop=0,pass-1 do begin
       for j=0,max_x-min_x do begin
+      ;medderivdat=fltarr(max_x-min_x+1,size_l)
+      ;derivdat=medderivdat
       medderivdat(j,*)=smooth(slice_xl(j,*),10,/edge_truncate,/NAN)
       derivdat(j,*)=deriv(slice_xl(j,*))
       endfor
+      ;derivdat3=medderivdat
       derivdat3=abs(slice_xl-medderivdat)/abs(medderivdat)
-
-
+      
       w1=where(derivdat gt 0.,c1)
       w2=where(derivdat le 0.,c2)
       if c1 gt 0. then derivdat(w1)=2.
@@ -143,21 +144,17 @@ min_x=0 & min_y=0 & max_x=0 & max_y=0
       derivdat2 = fltarr(max_x-min_x+1,size_l)
       for j=0,max_x-min_x do begin
         derivdat2(j,*)=shift(derivdat(j,*),-1)+shift(derivdat(j,*),+1)
-        ;derivdat=0b
         test=where(derivdat3(j,*) gt threshold and derivdat2(j,*) eq 3, c3)
-        ;derivdat2=0b & derivdat3=0b
-
         if c3 gt 0 then begin
           medderivdat(j,*)=smooth(slice_xl(j,*),30,/edge_truncate,/NAN)
           slice_xl(j,test)=medderivdat(j,test)
          endif
       endfor
-      ;medderivdat=0b & test=0b
+      medderivdat=0b & test=0b & derivdat2=0b & derivdat3=0b & derivdat = 0b
       threshold=(threshold-step)>0.
     endfor
-
-    output(min_x:max_x,0:size_l-1,i)=slice_xl
-    slice_xl=0
+      output(min_x:max_x,0:size_l-1,i)=slice_xl
+      slice_xl=0
   endfor
   if n_elements(input_size) eq 3 then begin
     output(*,0:3,*)=input(*,0:3,*)
