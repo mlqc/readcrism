@@ -1,0 +1,195 @@
+PRO BoxImage::Draw, Font=font
+
+; This method draws the graphics display.
+
+   ; Error handling.
+
+Catch, theError
+IF theError NE 0 THEN BEGIN
+   Catch, /Cancel
+   ok = Error_Message(!Error_State.Msg + ' Returning...', $
+      Traceback=1, /Error)
+   RETURN
+ENDIF
+
+   ; Check keywords.
+
+IF N_Elements(font) EQ 0 THEN font = !P.Font
+
+   ; Obtain the annotate color.
+
+annotateColor = GetColor(self.annotatecolor, !D.Table_Size-2)
+backColor = GetColor(self.backColor, !D.Table_Size-3)
+
+   ; Load the image colors.
+
+TVLCT, *self.r, *self.g, *self.b
+
+   ; Calculate the position of the image and color bar
+   ; in the window.
+
+IF self.vertical THEN BEGIN
+   p = self.position
+   length = p[2] - p[0]
+   imgpos = [p[0], p[1], (p[2]-(0.20*length)), p[3]]
+   cbpos =  [(p[0]+(0.93*length)), p[1], p[2], p[3]]
+ENDIF ELSE BEGIN
+   p = self.position
+   length = p[3] - p[1]
+   imgpos = [p[0], p[1], p[2], (p[3]-(0.20*length))]
+   cbpos =  [p[0], (p[1]+(0.93*length)), p[2], p[3]]
+ENDELSE
+
+   ; Need to erase display? Only on displays with windows.
+
+IF (!D.Flags AND 256) NE 0 THEN Erase, Color=backColor
+
+   ; Calculate appropriate character size for plots.
+
+thisCharsize = Str_Size('A Sample String', 0.25)
+
+   ; Draw the graphics.
+
+TVImage, BytScl(*self.process, Top=self.ncolors-1), $
+   Position=imgpos, _Extra=*self.extra
+Plot, self.xscale, self.yscale, XStyle=1, YStyle=1, $
+   XTitle=self.xtitle, YTitle=self.ytitle, Color=annotateColor, $
+   Position=imgpos, /NoErase, /NoData, Ticklen=-0.025, _Extra=*self.extra, $
+   CharSize=thisCharSize, Font=font
+Colorbar, Range=[Min(*self.process), Max(*self.process)], Divisions=8, $
+   _Extra=*self.extra, Color=annotateColor, Position=cbpos, Ticklen=-0.2, $
+   Vertical=self.vertical, NColors=self.ncolors, CharSize=thisCharSize, Font=font
+
+END ;--------------------------------------------------------------------
+
+
+Function BoxImage::Init, $        ; The name of the method.
+   image, $                       ; The image data.
+   AnnotateColor=annotatecolor, $ ; The annotation color.
+   BackColor=backcolor, $         ; The background color.
+   ColorTable=colortable, $       ; The colortable index.
+   NColors=ncolors, $             ; Number of image colors.
+   Position=position, $           ; Position in window.
+   Vertical=vertical, $           ; Vertical colorbar flag.
+   XScale=xscale, $               ; The scale on X axis.
+   XTitle=xtitle, $               ; The title on X axis.
+   YScale=yscale, $               ; The scale on Y axis.
+   YTitle=ytitle, $               ; The title on Y axis.
+   _Extra=extra                   ; Holds extra keywords.
+
+; The initialization routine for the object. Create the
+; particular instance of the object class.
+
+   ; Error handling.
+
+Catch, theError
+IF theError NE 0 THEN BEGIN
+   Catch, /Cancel
+   ok = Error_Message(!Error_State.Msg + ' Returning...', $
+      Traceback=1, /Error)
+   RETURN, 0
+ENDIF
+
+   ; Check for positional parameter. Define if necessary.
+
+IF N_Elements(image) EQ 0 THEN image = LoadData(7)
+ndims = Size(image, /N_Dimensions)
+IF ndims NE 2 THEN Message, 'Image must be 2D array.', /NoName
+
+   ; Check for keyword parameters.
+
+IF N_Elements(annotatecolor) EQ 0 THEN annotatecolor = "NAVY"
+IF N_Elements(backcolor) EQ 0 THEN backcolor = "WHITE"
+IF N_Elements(ncolors) EQ 0 THEN ncolors = !D.Table_Size - 3
+IF N_Elements(position) EQ 0 THEN position = [0.15, 0.15, 0.9, 0.9]
+vertical = Keyword_Set(vertical)
+IF N_Elements(xtitle) EQ 0 THEN xtitle = ""
+IF N_Elements(ytitle) EQ 0 THEN ytitle = ""
+
+s = Size(image, /Dimensions)
+IF N_Elements(xscale) EQ 0 THEN xscale = [0,s[0]]
+IF N_Elements(yscale) EQ 0 THEN yscale = [0,s[1]]
+
+IF N_Elements(colortable) EQ 0 THEN BEGIN
+   colors = Obj_New("IDLgrPalette")
+   colors->LoadCT, 0
+   colors->GetProperty, Red=r, Green=g, Blue=b
+   Obj_Destroy, colors
+ENDIF ELSE BEGIN
+   colors = Obj_New("IDLgrPalette")
+   colors->LoadCT, 0 > colortable < 40
+   colors->GetProperty, Red=r, Green=g, Blue=b
+   Obj_Destroy, colors
+ENDELSE
+
+r = Congrid(r, ncolors)
+g = Congrid(g, ncolors)
+b = Congrid(b, ncolors)
+
+   ; Populate the object.
+
+self.image = Ptr_New(image)
+self.process = Ptr_New(image)
+self.undo = Ptr_New(image)
+self.position = position
+self.ncolors = ncolors
+self.annotatecolor = annotatecolor
+self.backcolor = backcolor
+self.r = Ptr_New(r)
+self.g = Ptr_New(g)
+self.b = Ptr_New(b)
+self.vertical = vertical
+self.xscale = xscale
+self.yscale = yscale
+self.xtitle = xtitle
+self.ytitle = ytitle
+self.extra = Ptr_New(extra)
+
+   ; Indicate successful initialization.
+
+RETURN, 1
+
+END ;--------------------------------------------------------------------
+
+
+
+PRO BoxImage::Cleanup
+
+; The clean-up routine for the object. Free all
+; pointers.
+
+Ptr_Free, self.image
+Ptr_Free, self.process
+Ptr_Free, self.undo
+Ptr_Free, self.r
+Ptr_Free, self.g
+Ptr_Free, self.b
+Ptr_Free, self.extra
+
+END ;--------------------------------------------------------------------
+
+
+
+PRO BoxImage__Define
+
+; The definition of the BOXIMAGE object class.
+
+struct = { BOXIMAGE, $              ; The BOXIMAGE object class.
+           image: Ptr_New(), $      ; The original image data.
+           process: Ptr_New(), $    ; The processed image data.
+           undo: Ptr_New(), $       ; The previous processed image data.
+           position: FltArr(4), $   ; The position of the graphics output in window.
+           r: Ptr_New(), $          ; The red color vector associated with image colors.
+           g: Ptr_New(), $          ; The green color vector associated with image colors.
+           b: Ptr_New(), $          ; The blue color vector associated with image colors.
+           ncolors: 0L, $           ; The number of image colors.
+           annotatecolor: "", $     ; The name of the annotation color.
+           backcolor:"", $          ; The name of the background color.
+           xscale: FltArr(2), $     ; The scale for the X axis of the image plot.
+           yscale: FltArr(2), $     ; The scale for the Y axis of the image plot.
+           xtitle: "", $            ; The title of the X axis.
+           ytitle: "", $            ; The title of the Y axis.
+           vertical: 0L, $          ; A flag to indicate a vertical color bar.
+           extra: Ptr_New() $       ; A placeholder for extra keywords.
+          }
+END ;--------------------------------------------------------------------

@@ -74,7 +74,7 @@ if n_elements(wvlarr) lt 1 or n_elements(hdat) lt 1  then begin
     goto,finish
 endif
 
-hdat=reform(hdat)
+hdat=reform(temporary(hdat))
 wvlarr=reform(wvlarr)
 data_size=size(hdat,/dimensions)
 

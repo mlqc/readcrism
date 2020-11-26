@@ -34,10 +34,10 @@
 ; Updated: Oct 2018
 ;    Added write CAT header based on original file label file
 ;    for consistency with ENVI CAT software
-;    The CRISM_DATA_PATH will be restored from "mypaths.sav", so the script can be run in the same directory.
+;    The CRISM_DATA_PATH will be restored from "mypaths.sav", so the script is run in the same directory.
 
 pro crism2envi,crism
-  cd,'D:\IDL_routines\readcrism\readcrism2017'
+  cd,'D:\IDL_routines\readcrism\readcrism2019'
   restore,'mypaths.sav'
   plat=!VERSION.OS_FAMILY
   if (strupcase(plat) eq 'UNIX') then begin
@@ -52,8 +52,6 @@ pro crism2envi,crism
   ID = strmid(crism,0,11)
   cd,crism_sav_path
   restore, crism
-  
-  ID = strmid(crism,0,11)  
   ; -----------------------------------
   ;find the label file with all PDS information:
   ; -----------------------------------
@@ -178,10 +176,10 @@ pro crism2envi,crism
   endif else begin
     if (size_l le 155) then bands = [129,32,3] else bands =[232,77,12]
   endelse
-  
-  ENVI_WRITE_ENVI_FILE, ifdat_corr, out_name=CRISM_SAV_PATH+slash+ID+'_IF.img',DEF_BANDS=bands,interleave=1,Wavelength_units=0L, WL=meanwvl,zplot_titles='CRISM Spectral Plot'
+
+  ENVI_WRITE_ENVI_FILE, ifdat_corr, out_name=CRISM_SAV_PATH+slash+ID+'_IF.img'
   header1 = WRITE_CAT_HEADER(FNAME=CRISM_SAV_PATH+slash+ID+'_IF.img', NS=size_x, NL=size_y, NB=size_l, $                  ; required
-  DATA_TYPE=4, INTERLEAVE=1, OFFSET=0, CLOSEFILE=closefile, OVERWRITE=overwrite, R_FID=fid,  $        ; operational
+  DATA_TYPE=4, INTERLEAVE=1, OFFSET=0, CLOSEFILE=closefile, OVERWRITE=1, R_FID=fid,  $        ; operational
   BBL=bbl, BNAMES=bnames, CLASS_NAMES=class_names, $   ; optional ENVI                   ; ENVI
   DATA_GAINS=data_gains, DATA_IGNORE_VALUE=65535, $
   DATA_OFFSETS=0, DEF_BANDS=bands, DEF_STRETCH=def_stretch, $
@@ -205,12 +203,12 @@ pro crism2envi,crism
   CAT_SOLAR_LONGITUDE = ls, $
   CAT_PDS_LABEL_FILE = data_lbl_file, $
   CAT_WA_WAVE_FILE = wvl_file)
-  
+
   print, "Writing ratioed image into ENVI file with header information..."
-  ENVI_WRITE_ENVI_FILE, ifdat_corr_dsp, out_name=CRISM_SAV_PATH+slash+ID+'_ratioed_cube'+'.img',DEF_BANDS=bands,interleave=1,Wavelength_units=0L, WL=meanwvl,zplot_titles='CRISM Spectral Plot'
+  ENVI_WRITE_ENVI_FILE, ifdat_corr_dsp, out_name=CRISM_SAV_PATH+slash+ID+'_ratioed_cube'+'.img'
   header2 = WRITE_CAT_HEADER(FNAME=CRISM_SAV_PATH+slash+ID+'_ratioed_cube.img', NS=size_x, NL=size_y, NB=size_l, $                  ; required
   DATA_TYPE=4, INTERLEAVE=1, OFFSET=0, $
-  CLOSEFILE=closefile,  OVERWRITE=overwrite, R_FID=fid,  $        ; operational
+  CLOSEFILE=closefile,  OVERWRITE=1, R_FID=fid,  $        ; operational
   BBL=bbl, BNAMES=bnames, CLASS_NAMES=class_names, $   ; optional ENVI                   ; ENVI
   DATA_GAINS=data_gains, DATA_IGNORE_VALUE=65535, $
   DATA_OFFSETS=0, DEF_BANDS=bands, DEF_STRETCH=def_stretch, $
@@ -237,11 +235,10 @@ pro crism2envi,crism
 
   
   print, "Writing spectral parameters into ENVI file with header information..."
-  
-  ENVI_WRITE_ENVI_FILE, crismcube, out_name=CRISM_SAV_PATH+slash+ID+'_ratioed_bandmap.img',BNAMES=namecube
+  ENVI_WRITE_ENVI_FILE, crismcube, out_name=CRISM_SAV_PATH+slash+ID+'_ratioed_bandmap.img'
   header3 = WRITE_CAT_HEADER(FNAME=CRISM_SAV_PATH+slash+ID+'_ratioed_bandmap.img', NS=size_x, NL=size_y, NB=band_num, $                  ; required
   DATA_TYPE=4,INTERLEAVE='bsq',OFFSET=0, BNAMES=namecube,$
-  CLOSEFILE=closefile, OVERWRITE=overwrite, R_FID=fid,  $        ; operational
+  CLOSEFILE=closefile, OVERWRITE=1, R_FID=fid,  $        ; operational
   DATA_IGNORE_VALUE=65535, $
   DATA_OFFSETS=data_offsets,  $
   CAT_START_TIME  = start_time, $
@@ -258,7 +255,6 @@ pro crism2envi,crism
   CAT_SOLAR_LONGITUDE = ls, $
   CAT_PDS_LABEL_FILE = data_lbl_file, $
   CAT_WA_WAVE_FILE = wvl_file)
-  
   ;release memories
   ifdat_corr=0b &  ifdat_corr_dsp = 0b &  crismcube = 0b
    

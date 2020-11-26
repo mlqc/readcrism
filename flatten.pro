@@ -44,7 +44,7 @@ PRO FLATTEN, wvlc, input, output,bad_spectel,MLINEAR=MLINEAR, LINEAR=LINEAR, FLA
 
   ; verify data
   if n_elements(input) le 1 then goto,finish
-  input=reform(input)
+  input=reform(temporary(input))
   input_size=size(input,/dimension)
   if n_elements(input_size) ne 3 then goto,finish
   size_x=input_size(0)
@@ -191,7 +191,7 @@ PRO FLATTEN, wvlc, input, output,bad_spectel,MLINEAR=MLINEAR, LINEAR=LINEAR, FLA
     output=output(*,0:wpos2+smooth_width/2-1,*)
     output=[[output],[make_array(size_x,size_l-wpos2-smooth_width/2,size_y,value=1.)]]
     
-    output=input/output
+    output=input/temporary(output)
     
   endif
   

@@ -14,21 +14,30 @@
 ;IDL> readcrism,crismlist
 ;************************************************************
 
+
+;*************IMPORTANT UPDATE*******************************
+;crismlist file only include image ID, will find the image ID folder in CRISM_DATA_PATH
+;************************************************************
+;
 ; INPUTS:
 ;    filename: data file name (with path)
 ;    keywords: string array containing the list of keyword
 ;
 ; OUTPUTS:
-;    
+;    .sav file which includes :1. despiked data cube; 2. Ratioed data cube; 3. Spectral parameter maps; 4. Header informations
+;    file name: 'FRT000XXXX.sav'
+;    in the CRISM_SAV_PATH directory
+;
+;
 ; NOTES:
 ;----
-;01/16/2017 rewrite input code for harddrive
-;           try to incorporate multispectral dataset
-;11/24/2014 Reading files completed.
+;24/11/2014 Reading files completed.
 ;
 ; CREATED: Nov 2014
 ;      BY: L. Pan
-
+;
+;26/08/2017 Updated by L. Pan.
+; Reference: Pan et al., 2017 N. Plains paper.
 
 
 PRO READCRISM, crismlist
@@ -36,7 +45,7 @@ PRO READCRISM, crismlist
 print,';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;'
 print,';         READCRISM XD          ;'
 print,';           L. PAN              ;'
-print,';          2014 Nov             ;'
+print,';          2017 Aug             ;'
 print,';;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;'
 
 ;////Identify system used for running readcrism\\\\\
@@ -59,9 +68,11 @@ ra_corr = 0
 
 
 ;/////photometric and atmospheric correction\\\\\\\\\
-photo_corr = 0
-atp_corr = 0
-pds2cat = 0
+;*********SET AUTOMATICALLY IF DATA IS NOT CAT CORRECTED********
+;photo_corr = 1
+;atp_corr = 1
+
+pds2cat = 1
 
 
 ;/////Find bad spectels and produce bad spectel list\\\\\
@@ -90,7 +101,7 @@ restore,'mypaths.sav'
 ; Looking for data
 print, n_elements(crismlist)
 if n_elements(crismlist) eq 0 then goto,finish
-tmp=FILE_SEARCH(strcompress(pro_path+crismlist,/remove_all),count=countb)
+tmp=FILE_SEARCH(strcompress(pro_path+crismlist),count=countb)
 if countb eq 0 then goto,finish
 READCOL,pro_path+crismlist,folders,FORMAT='A'
 folders=strtrim(folders,2)
@@ -100,10 +111,9 @@ print,' --------------------------------'
 print,' '
 
 for ifolder=0,END_BATCH DO BEGIN
-yearday=(strsplit(folders(ifolder),'\',/extract))[0]
-year = uint((strsplit(yearday,'_',/extract))[0])
-day = uint((strsplit(yearday,'_',/extract))[1])
-ID=(strsplit(folders(ifolder),'\',/extract))[1]
+
+
+ID = folders(ifolder)
 ID_type = (strsplit(ID,'0',/extract))[0]
 ID_no = (strsplit(ID,'0',/extract))[1]
 
@@ -117,25 +127,7 @@ close,/all
 ; ---------------------------------------
 
 restore,'mypaths.sav'
-if (year LT 2008) then datano='data4'
-if (year EQ 2008) and (day LE 325) then datano='data4'
-if (year EQ 2008) and (day GT 325) then datano='data5'
-if (year GT 2008) and (year LT 2014) then datano='data5'
-if (year EQ 2008) and (day LE 325) then datano='data4'
-if (year EQ 2014) and (day LE 144) then datano='data5'
-if (year EQ 2015) then datano='data6'
-if (year EQ 2014) and (day GT 144) then datano='data6'
-if  strtrim(ID_no,0) EQ '3' then datano = 'data6'
-path_seperate = strsplit(crism_data_path,slash,/extract)
-crism_data_path=strcompress(slash+slash+path_seperate[0]+slash+datano+slash+path_seperate[2]+slash+path_seperate[3]+slash+yearday+slash+ID+slash,/remove_all)
-
-;crism_nav_path=crism_nav_path.replace('data4',datano)
-;crism_data_path=strcompress(crism_data_path+ID+slash,/remove_all)
-crism_ddr_path=strcompress(crism_ddr_path+yearday+slash+ID+slash,/remove_all)
 ;Seek data file
-
-
-
 if ra_corr eq 1 then begin
   seek_crism=file_search(crism_ra_path+slash+strlowcase(ID)+'*ra*l_trr3.img',count=count)
   print,"Found data file: "+seek_crism
@@ -147,20 +139,27 @@ if ra_corr eq 1 then begin
   print,"Found data file label: "+seek_crism
   if count eq 0 then return ; goto,finish
   data_lbl_file=seek_crism(0)
-endif else begin 
-  
-  seek_crism=file_search(crism_data_path+'*'+'*0*_IF*L_TRR3*CAT_corr.img',count=count)
+endif else begin
+  seek_crism=file_search(crism_data_path+slash+ID+'*0*_IF*L_TRR3*CAT_corr.img',count=count,/FOLD_CASE)
   ;/////If found, skip photometric and atmospheric correction\\\\\\\\\
   photo_corr = 0
   atp_corr = 0
-  pds2cat = 0
+  pds2cat = 0e
   if count eq 0 then begin
-    seek_crism=file_search(crism_data_path+'*'+'*0*_IF*L_TRR3*CAT.img',count=count)
+    seek_crism=file_search(crism_data_path+slash+ID+slash+ID+'*0*_IF*L_TRR3*CAT_corr.img',count=count,/FOLD_CASE)
+  ;/////If found, skip photometric and atmospheric correction\\\\\\\\\
+  endif
+  if count eq 0 then begin
+    seek_crism=file_search(crism_data_path+slash+ID+slash+ID+'*0*_IF*L_TRR3*CAT.img',count=count)
     photo_corr = 1
     atp_corr = 1
   endif
   if count eq 0 then begin
-    seek_crism = file_search(crism_data_path+'*'+'*0*_IF*L_TRR3.IMG',count=count)
+    seek_crism = file_search(crism_data_path+slash+ID+slash+ID+'*0*_IF*L_TRR3.IMG',count=count,/FOLD_CASE)
+    pds2cat = 1
+  endif
+  if count eq 0 then begin
+    seek_crism = file_search(crism_data_path+slash+strlowcase(ID)+'*0*_if*l_trr3.img',count=count)
     pds2cat = 1
   endif
   print,"Found data file: "+seek_crism
@@ -168,30 +167,31 @@ endif else begin
   if count eq 0 then return ; goto,finish
   data_file=seek_crism(0)
 
-  seek_crism=file_search(crism_data_path+'*0*_IF*L_TRR3.LBL',count=count)
+  seek_crism=file_search(crism_data_path+slash+ID+'*0*_IF*L_TRR3.LBL',count=count,/FOLD_CASE)
+  if count eq 0 then begin
+    seek_crism = file_search(crism_data_path+slash+ID+slash+ID+'*0*_IF*L_TRR3.lbl',count=count,/FOLD_CASE)
+  endif
   print,"Found data file label: "+seek_crism
   if count eq 0 then return ; goto,finish
   data_lbl_file=seek_crism(0)
-;  seek_crism=file_search(crism_data_path+'*0*_IF*L_TRR3*CAT_corr*.hdr',count=count)
-;  print,"Found cat data header file: "+seek_crism
-;  if count eq 0 then return ; goto,finish
-;  cat_header_file=seek_crism(0)
-endelse
+  endelse
 
-seek_crism=file_search(crism_ddr_path+'*07_de*l_ddr1.img',count=count)
-if count eq 0 then seek_crism=file_search(crism_ddr_path+'*07_DE*L_DDR1.IMG',count=count)
-if count eq 0 then seek_crism=file_search(crism_ddr_path+'*01_DE*L_DDR1.IMG',count=count)
-print,"Found data ddr file: "+seek_crism
-if count eq 0 then return ; goto,finish
-geo_file=seek_crism(0)
+  seek_crism=file_search(crism_ddr_path+slash+ID+'*07_de*l_ddr1.img',count=count)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+slash+ID+'*07_DE*L_DDR1.IMG',count=count,/FOLD_CASE)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+slash+ID+'*01_DE*L_DDR1.IMG',count=count,/FOLD_CASE)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+'*01_DE*L_DDR1.IMG',count=count,/FOLD_CASE)
+  print,"Found data ddr file: "+seek_crism
+  if count eq 0 then return ; goto,finish
+  geo_file=seek_crism(0)
 
-seek_crism=file_search(crism_ddr_path+'*07_de*l_ddr1.lbl',count=count)
-if count eq 0 then seek_crism=file_search(crism_ddr_path+'*07_DE*L_DDR1.LBL',count=count)
-if count eq 0 then seek_crism=file_search(crism_ddr_path+'*01_DE*L_DDR1.LBL',count=count)
-print,"Found data ddr file label: "+seek_crism
-if count eq 0 then return ; goto,finish
+  seek_crism=file_search(crism_ddr_path+slash+ID+'*07_de*l_ddr1.lbl',count=count)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+slash+ID+'*07_DE*L_DDR1.LBL',count=count)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+slash+ID+'*01_DE*L_DDR1.LBL',count=count)
+  if count eq 0 then seek_crism=file_search(crism_ddr_path+slash+ID+'*01_DE*L_DDR1.LBL',count=count)
+  print,"Found data ddr file label: "+seek_crism
+  if count eq 0 then return ; goto,finish
 
-geo_lbl_file=seek_crism(0)
+  geo_lbl_file=seek_crism(0)
 ;continue
 ; -----------------------------------
 ; READ DATA LABEL
@@ -230,7 +230,7 @@ endl=size_l-1
 ; -----------------------------------
 
 tmp=(strsplit(file_name,'_',/extract))[0]
-temp=file_search( strcompress(crism_sav_path+tmp+'.sav',/remove_all),count=counts)
+temp=file_search( strcompress(crism_sav_path+slash+tmp+'.sav'),count=counts)
 if counts eq 1 then begin
     print,'<!> File already exists, skipping ',tmp
     continue
@@ -254,7 +254,7 @@ if err ne 0 then begin
     return
 endif
 CLOSE,1
-wvlc=swap_endian(temporary(wvlc),/swap_if_big_endian) 
+wvlc=swap_endian(temporary(wvlc),/swap_if_big_endian)
 wvlc=wvlc*0.001
 wvlc(*,0)=4.0
 temp=where(wvlc eq 65.5350,count)
@@ -264,18 +264,20 @@ wvlc_subrows=reverse(wvlc_subrows)
 wvlc_subrows=0b
 
 meanwvl=fltarr(size_l)
-for i=0,size_l-1 do begin  
+for i=0,size_l-1 do begin
   if size_x lt 100 then begin
-    print,'Bad data: wvlc file less than 100 rows'
-    return
-  endif
-  if obs_type eq 'FRT' then sweetspot=270 else sweetspot=size_x-101
-  sweetspot = sweetspot+indgen(100)
-  flag = intarr(100)
-  for k=0,100-1 do begin
-    if wvlc(sweetspot(k),i) eq 0 then flag(k)= 0 else flag(k)=1
+    ;print,'Bad data: wvlc file less than 100 rows'
+    meanwvl(i) = mean(wvlc(*,i))
+    ;return
+    endif else begin
+    if obs_type eq 'FRT' then sweetspot=270 else sweetspot=size_x-101
+    sweetspot = sweetspot+indgen(100)
+    flag = intarr(100)
+    for k=0,100-1 do begin
+      if wvlc(sweetspot(k),i) eq 0 then flag(k)= 0 else flag(k)=1
     endfor
-   meanwvl(i) = total(wvlc(sweetspot(*),i)*flag)/total(flag)
+    meanwvl(i) = total(wvlc(sweetspot(*),i)*flag)/total(flag)
+    endelse
 endfor
 
 ; -----------------------------------
@@ -296,7 +298,7 @@ if ra_corr eq 1 or pds2cat eq 1 then begin
 ;  endif else begin
 ;  ifdat_corr = tmp(radat)
 ;  endelse
-  
+
 ; -----------------------------------
 ; READ GEOMETRY LABEL
 ; -----------------------------------
@@ -407,7 +409,7 @@ atmlblvalues=strsplit(atmlblvalues(0),'"',/extract)
 atmlblvalues=strtrim(string(atmlblvalues),2)
 atmlblvalues=strmid(atmlblvalues,0,strlen(atmlblvalues)-6)
 atmlblvalues=(file_search(crism_ref_path+slash+'WA'+slash+atmlblvalues+'*.IMG'))[0]
-atmlblvalues=strcompress(atmlblvalues(0),/remove_all)
+atmlblvalues=strcompress(atmlblvalues(0))
 
 close,2
 wvlc_at=fltarr(size_x,size_l)
@@ -433,8 +435,8 @@ endif
 ; FIND GOOD DATA
 ; -----------------------------------
 
-;if want to remove CRISM data > 2.8 µm (faster):then ending wavelength is No. 265 given that it's a targed image with 438 bands
-if rm_tir eq 1 and (obs_type eq 'FRT' or obs_type eq 'HRL') then endl=265
+;if want to remove CRISM data > 2.65 µm (faster):then ending wavelength is No. 265 given that it's a targed image with 438 bands
+if rm_tir eq 1 and (obs_type eq 'FRT' or obs_type eq 'HRL') then endl=245
 if rm_tir eq 0 then endl=size_l-1
 
 ;Find CRISM no data values on the edge of file.
@@ -465,7 +467,7 @@ endfor
 ; -----------------------------------
 if ra_corr eq 1 then begin
   print,'<> Radiance to I/F calculation'
-  ;Find solar spectrum from auxillary files. 
+  ;Find solar spectrum from auxillary files.
   ; Find the best solar spectrum file
 
   get_sf_file=file_search(crism_ref_path+slash+'SF'+slash+'CDR4*_SF'+'*'+binmode+'*'+wvlfilter+'*'+channel+'_*.LBL',count=count)
@@ -480,7 +482,7 @@ if ra_corr eq 1 then begin
   retwvf=strmid(get_sf_file,pos+8,1)
   w=where(retwvf eq wvlfilter)
   get_sf_file=get_sf_file(w)
-  
+
   if n_elements(get_sf_file) eq 1 then begin
     sf=fltarr(size_x,size_l)
     sf_len=strlen(get_sf_file)
@@ -494,7 +496,8 @@ if ra_corr eq 1 then begin
 endif
 
 if ra_corr ne 1 then begin
-ifdat = radat
+ifdat = temporary(radat)
+radat = 0b
 endif
 ; -----------------------------------
 ; MAKE BAD SPECTEL LIST
@@ -518,11 +521,11 @@ if list_bad_spec_only eq 1 and bad_spectels_corr eq 1 then begin
     if bad_spectel(0) eq -1 then bad_spectel=bad_spectel(1:*)
     if bad_spectel(0) eq 0 and n_elements(bad_spectel) gt 1 then bad_spectel=bad_spectel(1:*)
   endif
-  tmp = 0& slice=0 & slice_size=0
+  tmp = 0b& slice=0b & slice_size=0b
   print,'For image:'+ID+', bad channels are: ', bad_spectel
   if list_bad_spec_only ne 1 then begin
     print,'The above channels are marked as NAN.'
-    radat(*,bad_spectel,*) = !VALUES.F_NAN
+    ifdat(*,bad_spectel,*) = !VALUES.F_NAN
   endif
 endif
 
@@ -573,11 +576,10 @@ if  atp_corr eq 1 then begin
 
 ;      temp=min(abs(temp_wvlc(i,*)-1.299),r1299index)
 ;      temp=min(abs(temp_wvlc(i,*)-2.527),r2527index)
-;      temp=min(abs(temp_wvlc(i,*)-1.850),r1850index) 
+;      temp=min(abs(temp_wvlc(i,*)-1.850),r1850index)
     temp_wvlc=0b
     ref_pt=0b
-    tmp=temporary(temp_atm)
-    temp_atm=tmp(*,indgen(endl+1),indgen(size_y)/99999)^beta(*,indgen(endl+1)/99999,indgen(size_y))
+    temp_atm=temp_atm(*,indgen(endl+1),indgen(size_y)/99999)^beta(*,indgen(endl+1)/99999,indgen(size_y))
     beta=0b
       ifdat_corr=fltarr(size_x,size_l,size_y,/nozero)
       for l=0,endl do  ifdat_corr(*,l,*)=ifdat(*,l,*)/temp_atm(*,l,*)
@@ -586,7 +588,7 @@ endif
 
 if photo_corr eq 0 and atp_corr eq 0 then begin
   print,"Batch corrected file: skipping atmospheric correction...."
-  ifdat_corr = ifdat
+  ifdat_corr = temporary(ifdat)
   ifdat = 0b
  endif
 ;ENVI_WRITE_ENVI_FILE, tmpdat, out_name=ID+'_ratio_despike.img',DEF_BANDS=[232,76,12],interleave=1,Wavelength_units=0L, WL=meanwvl,zplot_titles='CRISM Spectral Plot'
@@ -598,15 +600,12 @@ if photo_corr eq 0 and atp_corr eq 0 then begin
 ; -----------------------------------
 if rm_spikes eq 1 then begin
   print,'<> Basic spike correction'
-  tmp=0b
   threshold=0.015
-  tmp=slicedespike(ifdat_corr,threshold,1,0.001,bad_spectel,0)
-  ifdat_corr_dsp=temporary(tmp)
+  ifdat_corr_dsp=slicedespike(ifdat_corr,threshold,1,0.001,bad_spectel,0)
 endif
 if rm_spikes eq 0 then begin
   print,'<> Skipping basic spike correction'
-  tmp=ifdat_corr
-  ifdat_corr_dsp=temporary(tmp)
+  ifdat_corr_dsp=temporary(ifdat_corr)
 endif
 ;ENVI_WRITE_ENVI_FILE, ifdat_corr_dsp, out_name=ID+'_despiked.img',DEF_BANDS=[232,76,12],interleave=1,Wavelength_units=0L, WL=meanwvl,zplot_titles='CRISM Spectral Plot'
 ;continue
@@ -635,10 +634,11 @@ if rm_cont_bdt eq 1 then begin
       tmp=0b
       FLATTEN,wvlc,ifdat_corr_dsp,tmpdatflat,/BANDTHRES ; flatten ver >= v3.1
       ifdat_corr_dsp=temporary(tmpdatflat)
+      tmpdatflat =0b
       ;ENVI_WRITE_ENVI_FILE, tmpdat, out_name=ID+'_bdt2.img',DEF_BANDS=[12,76,232],interleave=1,Wavelength_units=0L, WL=meanwvl,zplot_titles='CRISM Spectral Plot'
       ;ENVI_SETUP_HEAD, fname = ID+'_bdt2.img',interleave=1,wavelength_units=0l,wl=meanwvl,data_ignore_value=65535, offset=0, /write, /open
 endif
-    
+
 ; -----------------------------------
 ; From now on we start to make efforts to make better maps
 ; -----------------------------------
@@ -731,7 +731,7 @@ if make_bands eq 1 then begin
 
   keepdat=temporary(ifcorr_bmap)
   ifcorr_bmap=temporary(tmpdat2)
-
+  tmpdat2 = 0b
   CRITERIA,wvlc,ifcorr_bmap,crismcube,namecube,bad_spectel,/CRISM
   crismcube(*,*,7)=MHSULFATE
   crismcube(*,*,5)=PHSULFATE
@@ -742,6 +742,7 @@ if make_bands eq 1 then begin
 
 
   ifcorr_bmap=temporary(keepdat)
+  keepdat=0b
   ;ENVI_WRITE_ENVI_FILE, crismcube, out_name=ID+'_flattened_bandmap2.img',BNAMES=bandname,interleave=0
 
 endif
@@ -769,7 +770,7 @@ count = 0b  & check=0b
 conv_min_lon=min(infocube(*,*,0))
 conv_max_lon=max(infocube(*,*,0))
 if conv_min_lon lt 0 then conv_min_lon=360.+conv_min_lon
-if conv_max_lon lt 0 then conv_max_lon=360.+conv_max_lon 
+if conv_max_lon lt 0 then conv_max_lon=360.+conv_max_lon
 log=strarr(6)
 log(0)=strcompress('FILE_NAME '+FILE_NAME)
 log(1)=strcompress('OBSERVATION '+OBS_NAME)
@@ -797,9 +798,9 @@ file_name=(strsplit(file_name,'_',/extract))[0]
 
 
 print,'<> Saving despiked and ratioed cubes, bandmaps and related files to '+ID+'.sav'
- save,infocube_header,infocube,ifdat_corr,ifdat_corr_dsp,NAMECUBE,CRISMCUBE,WVLC,meanwvl,BAD_SPECTEL,file=strcompress(crism_sav_path+ID+'.sav',/remove_all)
+ save,infocube_header,infocube,ifdat_corr,ifdat_corr_dsp,NAMECUBE,CRISMCUBE,WVLC,meanwvl,BAD_SPECTEL,file=strcompress(crism_sav_path+slash+ID+'.sav')
  print,'<> CRISM data reduction for '+ID+': Finished'
- 
+
 radat=0b & tmpdat=0b & namecube=0b & crismcube=0b & wvlc=0b & bad_spectel=0b
 print,'***************************************************************'
 print,''
@@ -809,4 +810,3 @@ endfor
   finish:
 
 END
- 
